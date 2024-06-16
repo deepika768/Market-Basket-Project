@@ -1,4 +1,3 @@
-
 import numpy as np
 import pandas as pd
 import seaborn as sns
@@ -24,32 +23,37 @@ st.markdown("<h1 style='text-align: center; color: #ff0000;'>Customer Satisfacti
 if mode == "EDA":
     def main():
         # Header of Customer Satisfaction Prediction
-       html_temp = """
+        html_temp = """
                 <div style="background-color:#F5F5F5">
                 <h1 style="color:#31333F;text-align:center;"> Customer Satisfaction Prediction </h1>
                 </div>
             """
-    st.markdown(html_temp, unsafe_allow_html=True)
+        st.markdown(html_temp, unsafe_allow_html=True)
 
-    # Check if the CSV file path exists
-    try:
-        EDA_sample = pd.read_csv(csv_file_path, index_col=0)
-        st.header('**Input DataFrame**')
-        st.write(EDA_sample)
+        # Check if the CSV file path exists
+        try:
+            EDA_sample = pd.read_csv(r'C:/Market Basket ML Project/data/EDA.csv', index_col=0)
+            st.header('**Input DataFrame**')
+            st.write(EDA_sample)
+            st.write(f"DataFrame shape: {EDA_sample.shape}")
 
-        # Generate Pandas Profiling Report
-        pr = ProfileReport(EDA_sample, explorative=True)
-        pr.to_file("report.html")
+            # Generate Pandas Profiling Report
+            pr = ProfileReport(EDA_sample, explorative=True)
+            pr.to_file("report.html")
 
-        st.header('**Pandas Profiling Report**')
-        with open("report.html", "r", encoding='utf-8') as f:
-            components.html(f.read(), height=800, scrolling=True)
+            st.header('**Pandas Profiling Report**')
+            with open("report.html", "r", encoding='utf-8') as f:
+                components.html(f.read(), height=800, scrolling=True)
 
-    except FileNotFoundError:
-        st.error(f"File '{csv_file_path}' not found. Please check the file path and try again.")
+        except FileNotFoundError:
+            st.error("File not found. Please check the file path.")
+        except pd.errors.EmptyDataError:
+            st.error("The file is empty. Please check the file content.")
+        except Exception as e:
+            st.error(f"An error occurred: {e}")
 
-if __name__ == '__main__':
-    main()
+    if __name__ == '__main__':
+        main()
 
 if mode == "Classification":
     # Define function to predict classification based on assigned features
@@ -133,72 +137,65 @@ if mode == "Clustering":
             """
         st.markdown(html_temp, unsafe_allow_html=True)
 
-        # Assign all features with desired data input method
-        payment_installments = st.slider('payment_installments', 1, 24, 1)
-        payment_sequential = st.slider('payment_sequential', 1, 24, 1)
-        freight_value = st.text_input('freight_value', '')
-        price = st.text_input('price', '')
-        payment_value = st.text_input('payment_value', '')
-        result_cluster = ''
+        # Specify CSV file path (change this path as needed)
+        csv_path = r'C:/Market Basket ML Project/data/Clustering Sample.csv'
 
-        # Predict Cluster of the customer
-        if st.button('Predict_Cluster'):
-            result_cluster = predict_clustering(freight_value, price, payment_value, payment_installments, payment_sequential)
-
-        st.success(f'Customer Cluster is {result_cluster}')
-
-        # Upload CSV file
-        with st.sidebar.header('Upload your CSV data'):
-            uploaded_file = st.sidebar.file_uploader('Upload your input csv file')
-
-        if uploaded_file is not None:
-            # Read dataset
-            sample = pd.read_csv(uploaded_file, index_col=0)
+        # Read dataset
+        try:
+            sample = pd.read_csv(csv_path)
+            st.header('Uploaded Data')
+            st.write(sample)
+            st.write(f"DataFrame shape: {sample.shape}")
 
             # Define sidebar for clustering algorithm
-            selected_algorithm = sidebar.selectbox('Select Clustering Algorithm', ['K-Means', 'Agglomerative'])
+            selected_algorithm = st.sidebar.selectbox('Select Clustering Algorithm', ['K-Means', 'Agglomerative'])
 
             # Define sidebar for number of clusters
-            selected_clusters = sidebar.slider('Select number of clusters', 2, 10, 1)
+            selected_clusters = st.sidebar.slider('Select number of clusters', 2, 10, 2)
 
             # Define sidebar for PCA
-            use_pca = sidebar.radio('Use PCA', ('Yes', 'No'))
+            use_pca = st.sidebar.radio('Use PCA', ('Yes', 'No'))
 
-            # Preprocessing
-            scaler = StandardScaler()
-            sample_scaled = scaler.fit_transform(sample)
+            # Perform clustering
+            if st.button('Predict Clusters'):
+                # Preprocessing
+                scaler = StandardScaler()
+                sample_scaled = scaler.fit_transform(sample)
 
-            if use_pca == 'Yes':
-                pca = PCA(n_components=2)
-                sample_pca = pca.fit_transform(sample_scaled)
-                sample_for_clustering = sample_pca
-            else:
-                sample_for_clustering = sample_scaled
+                # Clustering
+                if selected_algorithm == 'K-Means':
+                    model = KMeans(n_clusters=selected_clusters)
+                else:
+                    model = AgglomerativeClustering(n_clusters=selected_clusters)
 
-            # Clustering
-            if selected_algorithm == 'K-Means':
-                model = KMeans(n_clusters=selected_clusters)
-            else:
-                model = AgglomerativeClustering(n_clusters=selected_clusters)
+                clusters = model.fit_predict(sample_scaled)
 
-            clusters = model.fit_predict(sample_for_clustering)
+                # Add cluster labels to dataframe
+                sample['Cluster'] = clusters
 
-            # Add cluster labels to dataframe
-            sample['Cluster'] = clusters
+                # Plot results (optional)
+                if use_pca == 'Yes':
+                    pca = PCA(n_components=2)
+                    sample_pca = pca.fit_transform(sample_scaled)
+                    st.header('PCA Scatter Plot')
+                    plt.figure(figsize=(10, 6))
+                    sns.scatterplot(x=sample_pca[:, 0], y=sample_pca[:, 1], hue=clusters, palette='viridis')
+                    plt.title('PCA Scatter Plot')
+                    plt.xlabel('PCA Component 1')
+                    plt.ylabel('PCA Component 2')
+                    st.pyplot(plt)
 
-            # Plot results
-            st.header('Clustered Data')
-            st.write(sample)
-
-            if use_pca == 'Yes':
-                st.header('PCA Scatter Plot')
-                plt.figure(figsize=(10, 6))
-                sns.scatterplot(x=sample_pca[:, 0], y=sample_pca[:, 1], hue=clusters, palette='viridis')
-                plt.title('PCA Scatter Plot')
-                plt.xlabel('PCA Component 1')
-                plt.ylabel('PCA Component 2')
-                st.pyplot(plt)
+                # Display clustered data
+                st.success('Customer clusters predicted successfully!')
+                st.header('Clustered Data')
+                st.write(sample)
+        
+        except FileNotFoundError:
+            st.error(f"File '{csv_path}' not found. Please check the file path and try again.")
+        except pd.errors.EmptyDataError:
+            st.error("The file is empty. Please check the file content.")
+        except Exception as e:
+            st.error(f"An error occurred: {e}")
 
     if __name__ == '__main__':
         main()
-
