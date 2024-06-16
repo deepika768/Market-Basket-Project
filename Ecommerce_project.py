@@ -1,3 +1,4 @@
+
 import numpy as np
 import pandas as pd
 import seaborn as sns
@@ -23,34 +24,32 @@ st.markdown("<h1 style='text-align: center; color: #ff0000;'>Customer Satisfacti
 if mode == "EDA":
     def main():
         # Header of Customer Satisfaction Prediction
-        html_temp = """
-                    <div style="background-color:#F5F5F5">
-                    <h1 style="color:#31333F;text-align:center;"> Customer Satisfaction Prediction </h1>
-                    </div>
-                """
-        st.markdown(html_temp, unsafe_allow_html=True)
+       html_temp = """
+                <div style="background-color:#F5F5F5">
+                <h1 style="color:#31333F;text-align:center;"> Customer Satisfaction Prediction </h1>
+                </div>
+            """
+    st.markdown(html_temp, unsafe_allow_html=True)
 
-        # Create sidebar to upload CSV files
-        with st.sidebar.header('Upload your CSV data'):
-            uploaded_file = st.sidebar.file_uploader('C:\Market Basket ML Project\EDA.csv')
+    # Check if the CSV file path exists
+    try:
+        EDA_sample = pd.read_csv(csv_file_path, index_col=0)
+        st.header('**Input DataFrame**')
+        st.write(EDA_sample)
 
-        if uploaded_file is not None:
-            # Read file and Put headers
-            EDA_sample = pd.read_csv(uploaded_file, index_col=0)
-            pr = ProfileReport(EDA_sample, explorative=True)
-            pr.to_file("report.html")
+        # Generate Pandas Profiling Report
+        pr = ProfileReport(EDA_sample, explorative=True)
+        pr.to_file("report.html")
 
-            st.header('**Input DataFrame**')
-            st.write(EDA_sample)
-            st.write('---')
-            st.header('**Pandas Profiling Report**')
-            with open("report.html", "r", encoding='utf-8') as f:
-                components.html(f.read(), height=800, scrolling=True)
-        else:
-            st.info('Awaiting for CSV file to be uploaded.')
+        st.header('**Pandas Profiling Report**')
+        with open("report.html", "r", encoding='utf-8') as f:
+            components.html(f.read(), height=800, scrolling=True)
 
-    if __name__ == '__main__':
-        main()
+    except FileNotFoundError:
+        st.error(f"File '{csv_file_path}' not found. Please check the file path and try again.")
+
+if __name__ == '__main__':
+    main()
 
 if mode == "Classification":
     # Define function to predict classification based on assigned features
